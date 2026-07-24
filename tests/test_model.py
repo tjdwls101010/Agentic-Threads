@@ -223,6 +223,101 @@ def test_reply_link_preview_and_missing_date_are_normalized(load_fixture):
     }
 
 
+@pytest.mark.parametrize(
+    ("text_info", "expected_is_reply", "expected_reply_to_id"),
+    [
+        pytest.param(
+            {"reply_to_id": "3001"},
+            True,
+            "3001",
+            id="absent-flag-with-parent-id",
+        ),
+        pytest.param(
+            {"reply_to_author": {"pk": "102", "username": "synthetic_parent"}},
+            True,
+            None,
+            id="absent-flag-with-parent-author",
+        ),
+        pytest.param(
+            {"reply_to_id": None, "reply_to_author": None},
+            False,
+            None,
+            id="absent-flag-with-null-linkage",
+        ),
+        pytest.param(
+            {"is_reply": True},
+            True,
+            None,
+            id="explicit-true-without-linkage",
+        ),
+        pytest.param(
+            {"is_reply": False},
+            False,
+            None,
+            id="explicit-false-without-linkage",
+        ),
+    ],
+)
+def test_reply_flag_normalization(
+    text_info,
+    expected_is_reply,
+    expected_reply_to_id,
+):
+    post = model.build_post(
+        {"pk": "3002", "text_post_app_info": text_info},
+        captured_at=CAPTURED_AT,
+    )
+
+    assert post is not None
+    assert post.is_reply is expected_is_reply
+    assert post.reply_to_id == expected_reply_to_id
+
+
+@pytest.mark.parametrize(
+    "raw_is_reply",
+    [
+        pytest.param(None, id="null"),
+        pytest.param("true", id="string"),
+        pytest.param(1, id="integer"),
+        pytest.param(0.0, id="float"),
+        pytest.param([], id="list"),
+        pytest.param({}, id="mapping"),
+    ],
+)
+def test_explicit_malformed_reply_flags_fail_closed(raw_is_reply):
+    post = model.build_post(
+        {
+            "pk": "3002",
+            "text_post_app_info": {"is_reply": raw_is_reply},
+        },
+        captured_at=CAPTURED_AT,
+    )
+
+    assert post is None
+
+
+@pytest.mark.parametrize(
+    "reply_linkage",
+    [
+        pytest.param({"reply_to_id": "3001"}, id="parent-id"),
+        pytest.param(
+            {"reply_to_author": {"pk": "102", "username": "synthetic_parent"}},
+            id="parent-author",
+        ),
+    ],
+)
+def test_explicit_false_reply_flag_with_linkage_fails_closed(reply_linkage):
+    post = model.build_post(
+        {
+            "pk": "3002",
+            "text_post_app_info": {"is_reply": False, **reply_linkage},
+        },
+        captured_at=CAPTURED_AT,
+    )
+
+    assert post is None
+
+
 def test_raw_nodes_are_strictly_opt_in_and_propagate_to_nested_posts(load_fixture):
     raw = _raw_posts(load_fixture, "feed.json", "feed")[0]
 

@@ -105,7 +105,7 @@ def test_top_level_help_and_version_are_offline_surfaces(capsys):
     with pytest.raises(SystemExit) as version_exit:
         cli.main(["--version"])
     assert version_exit.value.code == 0
-    assert capsys.readouterr().out.startswith("agentic-threads 0.1.0")
+    assert capsys.readouterr().out.startswith("agentic-threads 0.1.1")
 
 
 @pytest.mark.parametrize(

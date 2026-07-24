@@ -670,12 +670,17 @@ def _build_post(
         pinned_value = (
             pinned_info.get("is_pinned_to_profile") if isinstance(pinned_info, dict) else False
         )
-        is_reply_value = text_info.get("is_reply")
-        is_reply = (
-            is_reply_value
-            if isinstance(is_reply_value, bool)
-            else text_info.get("reply_to_author") is not None
-        )
+        reply_to_author = text_info.get("reply_to_author")
+        has_reply_linkage = reply_to_id is not None or reply_to_author is not None
+        if "is_reply" in text_info:
+            is_reply_value = text_info["is_reply"]
+            if not isinstance(is_reply_value, bool):
+                return None
+            if not is_reply_value and has_reply_linkage:
+                return None
+            is_reply = is_reply_value
+        else:
+            is_reply = has_reply_linkage
 
         share_info_value = text_info.get("share_info")
         share_info: dict[str, Any] = share_info_value if isinstance(share_info_value, dict) else {}
