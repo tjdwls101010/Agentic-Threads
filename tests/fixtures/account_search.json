@@ -1,0 +1,40 @@
+{
+  "data": {
+    "xdt_api__v1__users__search_connection": {
+      "edges": [
+        {
+          "cursor": "synthetic-account-edge-1",
+          "node": {
+            "pk": "301",
+            "username": "search_fixture_one",
+            "full_name": "Synthetic Search One",
+            "is_verified": false,
+            "follower_count": 4,
+            "following_count": 1,
+            "media_count": 2,
+            "biography": "First synthetic people-search result.",
+            "profile_pic_url": "https://example.invalid/profiles/301.png"
+          }
+        },
+        {
+          "cursor": "synthetic-account-edge-2",
+          "node": {
+            "pk": "302",
+            "username": "search_fixture_two",
+            "full_name": "Synthetic Search Two",
+            "is_verified": true,
+            "follower_count": 5,
+            "following_count": 3,
+            "media_count": 0,
+            "biography": "Second synthetic people-search result.",
+            "profile_pic_url": "https://example.invalid/profiles/302.png"
+          }
+        }
+      ],
+      "page_info": {
+        "end_cursor": null,
+        "has_next_page": false
+      }
+    }
+  }
+}

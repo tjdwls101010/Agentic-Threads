@@ -1,0 +1,37 @@
+{
+  "data": {
+    "user": {
+      "pk": "101",
+      "username": "synthetic_owner",
+      "full_name": "Synthetic Owner",
+      "is_verified": false,
+      "follower_count": 2,
+      "following_count": 1,
+      "media_count": 1,
+      "biography": "Owner of the synthetic connection.",
+      "profile_pic_url": "https://example.invalid/profiles/101.png",
+      "following": {
+        "edges": [
+          {
+            "cursor": "synthetic-following-edge-1",
+            "node": {
+              "pk": "501",
+              "username": "fixture_following_one",
+              "full_name": "Synthetic Following One",
+              "is_verified": false,
+              "follower_count": 2,
+              "following_count": 0,
+              "media_count": 1,
+              "biography": "Synthetic account followed by the owner.",
+              "profile_pic_url": "https://example.invalid/profiles/501.png"
+            }
+          }
+        ],
+        "page_info": {
+          "end_cursor": null,
+          "has_next_page": false
+        }
+      }
+    }
+  }
+}

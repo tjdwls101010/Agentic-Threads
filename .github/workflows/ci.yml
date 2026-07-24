@@ -1,0 +1,90 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  lint-and-test:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            python-version: "3.11"
+          - os: ubuntu-latest
+            python-version: "3.12"
+          - os: macos-latest
+            python-version: "3.12"
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install pinned dev dependencies
+        run: python -m pip install -r requirements-dev.lock
+
+      - name: Install package without resolving dependencies
+        run: python -m pip install -e . --no-deps
+
+      - name: Ruff lint
+        run: ruff check .
+
+      - name: Ruff format check
+        run: ruff format --check .
+
+      - name: Fixture PII and secret scan
+        run: python scripts/check_fixtures_pii.py
+
+      - name: Run offline tests
+        run: pytest
+
+  build-and-smoke:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install source distribution build tool
+        run: python -m pip install build
+
+      - name: Build source distribution from checkout
+        run: python -m build --sdist
+
+      - name: Build base wheel from source distribution
+        run: python -m pip wheel --no-deps --wheel-dir derived-wheel dist/*.tar.gz
+
+      - name: Install sdist-derived base wheel into a clean environment
+        run: |
+          python -m venv smoke-venv
+          smoke-venv/bin/pip install derived-wheel/*.whl
+
+      - name: Verify sdist-derived base install excludes Scrapling
+        run: >-
+          smoke-venv/bin/python -c
+          "import importlib.util; assert importlib.util.find_spec('scrapling') is None,
+          'scrapling unexpectedly installed'"
+
+      - name: Smoke test sdist-derived base install offline
+        run: |
+          smoke-venv/bin/agentic-threads --version
+          smoke-venv/bin/agentic-threads --help
+          smoke-venv/bin/agentic-threads catalog
+          smoke-venv/bin/agentic-threads schema
+          smoke-venv/bin/agentic-threads schema --json

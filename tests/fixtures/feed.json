@@ -1,0 +1,87 @@
+{
+  "data": {
+    "feedData": {
+      "edges": [
+        {
+          "node": {
+            "text_post_app_thread": {
+              "thread_items": [
+                {
+                  "post": {
+                    "pk": "1001",
+                    "code": "feed1",
+                    "taken_at": 1767225600,
+                    "caption": {
+                      "text": "A synthetic feed post quoting another synthetic post."
+                    },
+                    "user": {
+                      "pk": "101",
+                      "username": "synthetic_alice",
+                      "full_name": "Synthetic Alice",
+                      "is_verified": false,
+                      "follower_count": 12,
+                      "following_count": 4,
+                      "media_count": 6,
+                      "biography": "An entirely synthetic profile.",
+                      "profile_pic_url": "https://example.invalid/profiles/synthetic_alice.png"
+                    },
+                    "like_count": 3,
+                    "text_post_app_info": {
+                      "is_reply": false,
+                      "direct_reply_count": 2,
+                      "repost_count": 1,
+                      "quote_count": 1,
+                      "share_info": {
+                        "quoted_post": {
+                          "pk": "1002",
+                          "code": "quote1",
+                          "taken_at": 1767222000,
+                          "caption": {
+                            "text": "Synthetic quoted text with one photo."
+                          },
+                          "user": {
+                            "pk": "102",
+                            "username": "synthetic_bob",
+                            "full_name": "Synthetic Bob",
+                            "is_verified": false
+                          },
+                          "like_count": 1,
+                          "media_type": 1,
+                          "image_versions2": {
+                            "candidates": [
+                              {
+                                "url": "https://example.invalid/media/quote-small.jpg",
+                                "width": 320,
+                                "height": 240
+                              },
+                              {
+                                "url": "https://example.invalid/media/quote-large.jpg",
+                                "width": 1280,
+                                "height": 960
+                              }
+                            ]
+                          },
+                          "accessibility_caption": "A synthetic blue square.",
+                          "text_post_app_info": {
+                            "is_reply": false,
+                            "direct_reply_count": 0,
+                            "repost_count": 0,
+                            "quote_count": 0
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "page_info": {
+        "end_cursor": "synthetic_cursor_feed_page_2",
+        "has_next_page": true
+      }
+    }
+  }
+}

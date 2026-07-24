@@ -1,0 +1,27 @@
+# Python and build artifacts
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# Local development environments and tool caches
+.venv/
+venv/
+env/
+.ruff_cache/
+.pytest_cache/
+uv.lock
+
+# Raw captures and runtime data can contain third-party PII.
+scratch/
+*.raw.json
+output/
+profiles/
+
+# Local GJC session state is never repository content.
+.gjc/
+
+# Synthetic JSON fixtures remain tracked: do not add a blanket *.json ignore.
+.DS_Store

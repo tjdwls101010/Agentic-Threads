@@ -1,0 +1,51 @@
+{
+  "data": {
+    "mediaData": {
+      "edges": [
+        {
+          "node": {
+            "thread_items": [
+              {
+                "post": {
+                  "pk": "3002",
+                  "code": "reply1",
+                  "taken_at": null,
+                  "caption": {
+                    "text": "A synthetic reply with an intentionally unknown date."
+                  },
+                  "user": {
+                    "pk": "101",
+                    "username": "synthetic_alice",
+                    "full_name": "Synthetic Alice",
+                    "is_verified": false
+                  },
+                  "like_count": 1,
+                  "text_post_app_info": {
+                    "is_reply": true,
+                    "reply_to_id": "3001",
+                    "root_post_id": "3001",
+                    "reply_to_author": {
+                      "pk": "102",
+                      "username": "synthetic_bob"
+                    },
+                    "direct_reply_count": 0,
+                    "repost_count": 0,
+                    "quote_count": 0,
+                    "link_preview_attachment": {
+                      "url": "https://example.invalid/articles/synthetic-reference",
+                      "title": "Synthetic reference"
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "page_info": {
+        "end_cursor": null,
+        "has_next_page": false
+      }
+    }
+  }
+}
