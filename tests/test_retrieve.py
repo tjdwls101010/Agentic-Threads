@@ -226,7 +226,7 @@ def test_post_retrieval_fails_closed_on_an_invalid_non_null_relationship_id():
     assert client.requests_made == 1
 
 
-def test_home_cursor_pagination_deduplicates_and_stops_on_non_advance():
+def test_home_cursor_pagination_deduplicates_until_true_eof():
     client = FakeReadClient(
         [
             _post_page(
@@ -235,12 +235,7 @@ def test_home_cursor_pagination_deduplicates_and_stops_on_non_advance():
                 cursor="CURSOR-1",
                 has_next=True,
             ),
-            _post_page(
-                "feed",
-                [_raw_post("2"), _raw_post("3")],
-                cursor="CURSOR-1",
-                has_next=True,
-            ),
+            _post_page("feed", [_raw_post("2"), _raw_post("3")]),
         ]
     )
 
@@ -253,21 +248,53 @@ def test_home_cursor_pagination_deduplicates_and_stops_on_non_advance():
     assert client.calls[1][1]["after"] == "CURSOR-1"
 
 
-def test_home_cursor_cycle_stops_before_rescheduling_a_seen_cursor():
+def test_home_repeated_cursor_fails_closed_without_disclosing_cursor():
+    cursor = "SECRET-REPEATED-POST-CURSOR"
     client = FakeReadClient(
         [
-            _post_page("feed", [_raw_post("1")], cursor="C1", has_next=True),
-            _post_page("feed", [_raw_post("2")], cursor="C2", has_next=True),
-            _post_page("feed", [_raw_post("3")], cursor="C1", has_next=True),
+            _post_page("feed", [_raw_post("1")], cursor=cursor, has_next=True),
+            _post_page("feed", [_raw_post("2")], cursor=cursor, has_next=True),
         ]
     )
 
-    result = retrieve.fetch_home(client, DOC_IDS, None)
+    with pytest.raises(errors.EnvelopeParseError) as exc_info:
+        retrieve.fetch_home(client, DOC_IDS, None)
 
-    assert [post.id for post in result.posts] == ["1", "2", "3"]
-    assert result.stop_reason == "feed_exhausted"
-    assert result.requests_made == 3
-    assert [call[1].get("after") for call in client.calls] == [None, "C1", "C2"]
+    message = str(exc_info.value)
+    assert message == (
+        "response envelope drift for 'feed': pagination cursor was already scheduled"
+    )
+    assert cursor not in message
+    assert client.requests_made == 2
+    assert [call[1].get("after") for call in client.calls] == [None, cursor]
+
+
+def test_home_cursor_cycle_fails_closed_before_rescheduling_a_seen_cursor():
+    cursor_one = "SECRET-POST-CURSOR-1"
+    cursor_two = "SECRET-POST-CURSOR-2"
+    client = FakeReadClient(
+        [
+            _post_page("feed", [_raw_post("1")], cursor=cursor_one, has_next=True),
+            _post_page("feed", [_raw_post("2")], cursor=cursor_two, has_next=True),
+            _post_page("feed", [_raw_post("3")], cursor=cursor_one, has_next=True),
+        ]
+    )
+
+    with pytest.raises(errors.EnvelopeParseError) as exc_info:
+        retrieve.fetch_home(client, DOC_IDS, None)
+
+    message = str(exc_info.value)
+    assert message == (
+        "response envelope drift for 'feed': pagination cursor was already scheduled"
+    )
+    assert cursor_one not in message
+    assert cursor_two not in message
+    assert client.requests_made == 3
+    assert [call[1].get("after") for call in client.calls] == [
+        None,
+        cursor_one,
+        cursor_two,
+    ]
 
 
 def test_empty_page_with_advancing_cursor_is_not_eof():
@@ -322,15 +349,31 @@ def test_empty_page_with_advancing_cursor_is_not_eof():
         ),
     ),
 )
-def test_terminal_reason_scans_current_page_for_unique_in_window_pins(
+def test_profile_terminal_reason_keeps_unique_in_window_pins_limit_exempt(
     posts,
     kwargs,
     expected_reason,
     expected_since_crossed,
 ):
-    client = FakeReadClient([_post_page("feed", posts, cursor="unused-next-page", has_next=True)])
+    client = FakeReadClient(
+        [
+            _post_page(
+                "profile_threads",
+                posts,
+                cursor="unused-next-page",
+                has_next=True,
+            )
+        ]
+    )
 
-    result = retrieve.fetch_home(client, DOC_IDS, None, **kwargs)
+    result = retrieve.fetch_profile(
+        client,
+        DOC_IDS,
+        None,
+        "user_id",
+        "200",
+        **kwargs,
+    )
 
     assert [post.id for post in result.posts] == ["90", "1", "91"]
     assert result.raw_post_count == len(posts)
@@ -338,6 +381,45 @@ def test_terminal_reason_scans_current_page_for_unique_in_window_pins(
     assert result.since_target_crossed is expected_since_crossed
     assert result.requests_made == 1
     assert client.requests_made == 1
+
+
+def test_feed_pinned_row_consumes_the_ordinary_limit():
+    client = FakeReadClient(
+        [
+            _post_page(
+                "feed",
+                [_raw_post("90", pinned=True), _raw_post("1")],
+                cursor="unused-next-page",
+                has_next=True,
+            )
+        ]
+    )
+
+    result = retrieve.fetch_home(client, DOC_IDS, None, limit=1)
+
+    assert [post.id for post in result.posts] == ["90"]
+    assert result.stop_reason == "limit_reached"
+    assert result.requests_made == 1
+
+
+def test_post_search_pinned_row_consumes_the_ordinary_limit():
+    client = FakeReadClient(
+        [
+            _post_page(
+                "post_search",
+                [_raw_post("90", pinned=True), _raw_post("1")],
+                cursor="unused-next-page",
+                has_next=True,
+            )
+        ]
+    )
+
+    result = retrieve.search(client, DOC_IDS, None, "synthetic", limit=1)
+
+    assert isinstance(result, retrieve.RetrieveResult)
+    assert [post.id for post in result.posts] == ["90"]
+    assert result.stop_reason == "limit_reached"
+    assert result.requests_made == 1
 
 
 @pytest.mark.parametrize(
@@ -389,7 +471,7 @@ def test_malformed_post_after_terminal_reason_still_fails_closed(first_post, kwa
     client = FakeReadClient(
         [
             _post_page(
-                "feed",
+                "profile_threads",
                 [first_post, _raw_post("not-numeric")],
                 cursor="unused-next-page",
                 has_next=True,
@@ -398,16 +480,23 @@ def test_malformed_post_after_terminal_reason_still_fails_closed(first_post, kwa
     )
 
     with pytest.raises(errors.EnvelopeParseError, match="non-null post node"):
-        retrieve.fetch_home(client, DOC_IDS, None, **kwargs)
+        retrieve.fetch_profile(
+            client,
+            DOC_IDS,
+            None,
+            "user_id",
+            "200",
+            **kwargs,
+        )
 
     assert client.requests_made == 1
 
 
-def test_since_is_inclusive_and_stops_before_the_crossing_post():
+def test_profile_since_is_inclusive_and_stops_before_the_crossing_post():
     client = FakeReadClient(
         [
             _post_page(
-                "feed",
+                "profile_threads",
                 [
                     _raw_post("3", JULY_1),
                     _raw_post("2", JUNE_30),
@@ -417,16 +506,59 @@ def test_since_is_inclusive_and_stops_before_the_crossing_post():
         ]
     )
 
-    result = retrieve.fetch_home(
+    result = retrieve.fetch_profile(
         client,
         DOC_IDS,
         None,
+        "user_id",
+        "200",
         since=datetime(2026, 6, 30, tzinfo=UTC),
     )
 
     assert [post.id for post in result.posts] == ["3", "2"]
     assert result.stop_reason == "since_crossed"
     assert result.since_target_crossed is True
+
+
+def test_unordered_feed_keeps_an_in_window_row_after_an_older_row():
+    client = FakeReadClient(
+        [_post_page("feed", [_raw_post("1", JUNE_29), _raw_post("2", JUNE_30)])]
+    )
+
+    result = retrieve.fetch_home(
+        client,
+        DOC_IDS,
+        None,
+        since=SINCE_JUNE_30,
+    )
+
+    assert [post.id for post in result.posts] == ["2"]
+    assert result.stop_reason == "feed_exhausted"
+    assert result.since_target_crossed is False
+
+
+def test_unordered_post_search_keeps_an_in_window_row_after_an_older_row():
+    client = FakeReadClient(
+        [
+            _post_page(
+                "post_search",
+                [_raw_post("1", JUNE_29), _raw_post("2", JUNE_30)],
+            )
+        ]
+    )
+
+    result = retrieve.search(
+        client,
+        DOC_IDS,
+        None,
+        "synthetic",
+        since=SINCE_JUNE_30,
+    )
+
+    assert isinstance(result, retrieve.RetrieveResult)
+    assert [post.id for post in result.posts] == ["2"]
+    assert result.stop_reason == "no_next_page"
+    assert result.since_target_crossed is False
 
 
 def test_until_skips_newer_posts_and_continues_to_older_ones():
@@ -718,8 +850,8 @@ def test_numeric_post_no_replies_issues_only_root_operation_and_reports_one_requ
     ]
 
 
-def test_post_without_replies_preserves_root_limit_stop_after_exactly_one_request():
-    client = FakeReadClient([_post_detail(_raw_post("500"))])
+def test_pinned_permalink_root_consumes_limit_before_a_reply_request():
+    client = FakeReadClient([_post_detail(_raw_post("500", pinned=True))])
 
     result = retrieve.fetch_post(
         client,
@@ -727,7 +859,6 @@ def test_post_without_replies_preserves_root_limit_stop_after_exactly_one_reques
         None,
         "post_id",
         "500",
-        replies=False,
         limit=1,
     )
 
@@ -786,6 +917,40 @@ def test_numeric_post_default_issues_root_then_replies_and_reports_two_requests(
     ]
 
 
+def test_pinned_post_reply_consumes_the_shared_ordinary_limit():
+    root = _raw_post("500")
+    pinned_reply = _raw_post("501", pinned=True, reply_to_id="500")
+    later_reply = _raw_post("502", reply_to_id="500")
+    client = FakeReadClient(
+        [
+            _post_detail(root),
+            _post_page(
+                "post_replies",
+                [root, pinned_reply, later_reply],
+                cursor="unused-next-page",
+                has_next=True,
+            ),
+        ]
+    )
+
+    result = retrieve.fetch_post(
+        client,
+        DOC_IDS,
+        None,
+        "post_id",
+        "500",
+        limit=2,
+    )
+
+    assert [post.id for post in result.posts] == ["500", "501"]
+    assert result.stop_reason == "limit_reached"
+    assert result.requests_made == 2
+    assert [call[0] for call in client.calls] == [
+        gql.POST_OPERATION,
+        gql.POST_REPLIES_OPERATION,
+    ]
+
+
 def test_profile_threads_and_replies_share_dedup_state():
     thread = _raw_post("600")
     reply = _raw_post("601", reply_to_id="600")
@@ -806,6 +971,43 @@ def test_profile_threads_and_replies_share_dedup_state():
     )
 
     assert [post.id for post in result.posts] == ["600", "601"]
+    assert [call[0] for call in client.calls] == [
+        gql.PROFILE_THREADS_OPERATION,
+        gql.PROFILE_REPLIES_OPERATION,
+    ]
+
+
+def test_profile_replies_keep_in_window_pins_limit_exempt():
+    reply = _raw_post("601", JUNE_30, reply_to_id="600")
+    pinned_reply = _raw_post("602", JUNE_30, pinned=True, reply_to_id="600")
+    later_reply = _raw_post("603", JUNE_30, reply_to_id="600")
+    client = FakeReadClient(
+        [
+            _post_page("profile_threads", []),
+            _post_page(
+                "profile_replies",
+                [reply, pinned_reply, later_reply],
+                cursor="unused-next-page",
+                has_next=True,
+            ),
+        ]
+    )
+
+    result = retrieve.fetch_profile(
+        client,
+        DOC_IDS,
+        None,
+        "user_id",
+        "200",
+        replies=True,
+        limit=1,
+        since=SINCE_JUNE_30,
+    )
+
+    assert [post.id for post in result.posts] == ["601", "602"]
+    assert result.stop_reason == "limit_reached"
+    assert result.since_target_crossed is False
+    assert result.requests_made == 2
     assert [call[0] for call in client.calls] == [
         gql.PROFILE_THREADS_OPERATION,
         gql.PROFILE_REPLIES_OPERATION,
@@ -934,43 +1136,90 @@ def test_people_search_raw_preserves_top_level_source_nodes():
     assert result.users[1].to_dict()["raw"] is second
 
 
-def test_people_search_cursor_cycle_stops_before_rescheduling_a_seen_cursor():
+def test_people_search_repeated_cursor_fails_closed_without_disclosing_cursor():
+    cursor = "SECRET-REPEATED-USER-CURSOR"
     client = FakeReadClient(
         [
             _user_page(
                 "people_search",
                 [_raw_user("820", "synthetic_a")],
-                cursor="C1",
+                cursor=cursor,
                 has_next=True,
             ),
             _user_page(
                 "people_search",
                 [_raw_user("821", "synthetic_b")],
-                cursor="C2",
-                has_next=True,
-            ),
-            _user_page(
-                "people_search",
-                [_raw_user("822", "synthetic_c")],
-                cursor="C1",
+                cursor=cursor,
                 has_next=True,
             ),
         ]
     )
 
-    result = retrieve.search(
-        client,
-        DOC_IDS,
-        None,
-        "synthetic",
-        search_type="people",
+    with pytest.raises(errors.EnvelopeParseError) as exc_info:
+        retrieve.search(
+            client,
+            DOC_IDS,
+            None,
+            "synthetic",
+            search_type="people",
+        )
+
+    message = str(exc_info.value)
+    assert message == (
+        "response envelope drift for 'people_search': pagination cursor was already scheduled"
+    )
+    assert cursor not in message
+    assert client.requests_made == 2
+    assert [call[1].get("after") for call in client.calls] == [None, cursor]
+
+
+def test_people_search_cursor_cycle_fails_closed_without_disclosing_cursors():
+    cursor_one = "SECRET-USER-CURSOR-1"
+    cursor_two = "SECRET-USER-CURSOR-2"
+    client = FakeReadClient(
+        [
+            _user_page(
+                "people_search",
+                [_raw_user("820", "synthetic_a")],
+                cursor=cursor_one,
+                has_next=True,
+            ),
+            _user_page(
+                "people_search",
+                [_raw_user("821", "synthetic_b")],
+                cursor=cursor_two,
+                has_next=True,
+            ),
+            _user_page(
+                "people_search",
+                [_raw_user("822", "synthetic_c")],
+                cursor=cursor_one,
+                has_next=True,
+            ),
+        ]
     )
 
-    assert isinstance(result, retrieve.UserResult)
-    assert [user.id for user in result.users] == ["820", "821", "822"]
-    assert result.stop_reason == "no_next_page"
-    assert result.requests_made == 3
-    assert [call[1].get("after") for call in client.calls] == [None, "C1", "C2"]
+    with pytest.raises(errors.EnvelopeParseError) as exc_info:
+        retrieve.search(
+            client,
+            DOC_IDS,
+            None,
+            "synthetic",
+            search_type="people",
+        )
+
+    message = str(exc_info.value)
+    assert message == (
+        "response envelope drift for 'people_search': pagination cursor was already scheduled"
+    )
+    assert cursor_one not in message
+    assert cursor_two not in message
+    assert client.requests_made == 3
+    assert [call[1].get("after") for call in client.calls] == [
+        None,
+        cursor_one,
+        cursor_two,
+    ]
 
 
 @pytest.mark.parametrize(

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "agentic-threads"
-version = "0.1.0"
+version = "0.1.1"
 description = "Read-only Threads retrieval through authenticated, single-target CLI primitives"
 readme = "README.md"
 authors = [{ name = "tjdwls101010" }]

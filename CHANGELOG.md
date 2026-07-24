@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-07-24
+
+### Fixed
+
+- Scoped chronological `--since` termination and pinned-profile limit exemptions to profile connections so unordered feed/search pages cannot omit later in-window posts or bypass limits.
+- Failed closed on repeated post and user pagination cursors instead of reporting normal exhaustion.
+- Rejected malformed or contradictory reply flags while deriving absent flags from valid direct reply linkage.
+
 ## [0.1.0] - 2026-07-23
 
 ### Added
@@ -27,5 +35,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Routed diagnostics through one redaction path while keeping full result files explicit and outside the repository by default.
 - Added synthetic-fixture and private-vulnerability-reporting policies that prohibit live credentials, captures, and third-party personal data in the repository.
 
-[Unreleased]: https://github.com/tjdwls101010/Agentic-Threads/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/tjdwls101010/Agentic-Threads/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/tjdwls101010/Agentic-Threads/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/tjdwls101010/Agentic-Threads/releases/tag/v0.1.0

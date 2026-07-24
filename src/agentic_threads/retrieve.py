@@ -49,7 +49,7 @@ class _PostState:
     captured_at: datetime = field(default_factory=lambda: datetime.now(UTC))
     posts: list[model.Post] = field(default_factory=list)
     seen_ids: set[str] = field(default_factory=set)
-    non_pinned_count: int = 0
+    limit_count: int = 0
     since_target_crossed: bool = False
     raw_post_count: int = 0
 
@@ -163,6 +163,7 @@ def _consume_posts(
     raw_posts: Sequence[dict],
     state: _PostState,
     *,
+    profile_connection: bool,
     limit: int | None,
     since: datetime | None,
     until: datetime | None,
@@ -181,30 +182,32 @@ def _consume_posts(
                 "response envelope drift: a non-null post node could not be normalized"
             )
 
-        if terminal_reason is not None and not post.is_pinned:
+        if terminal_reason is not None and (not profile_connection or not post.is_pinned):
             continue
-        if not post.is_pinned and since is not None and post.created_at is not None:
-            if post.created_at < since:
-                state.since_target_crossed = True
-                terminal_reason = "since_crossed"
-                continue
+        if (
+            profile_connection
+            and not post.is_pinned
+            and since is not None
+            and post.created_at is not None
+            and post.created_at < since
+        ):
+            state.since_target_crossed = True
+            terminal_reason = "since_crossed"
+            continue
         if post.id in state.seen_ids:
             continue
         state.seen_ids.add(post.id)
 
-        if post.is_pinned:
-            if since is not None and post.created_at is not None and post.created_at < since:
-                continue
-            if until is not None and post.created_at is not None and post.created_at > until:
-                continue
-            state.posts.append(post)
+        if since is not None and post.created_at is not None and post.created_at < since:
             continue
         if until is not None and post.created_at is not None and post.created_at > until:
             continue
 
         state.posts.append(post)
-        state.non_pinned_count += 1
-        if limit is not None and state.non_pinned_count >= limit:
+        if profile_connection and post.is_pinned:
+            continue
+        state.limit_count += 1
+        if limit is not None and state.limit_count >= limit:
             terminal_reason = "limit_reached"
     return terminal_reason
 
@@ -225,6 +228,7 @@ def _paginate_posts(
     context: _RunContext,
     state: _PostState,
     *,
+    profile_connection: bool,
     initial_key: str,
     initial_operation: str,
     initial_variables: Callable[[], Mapping[str, object]],
@@ -257,9 +261,15 @@ def _paginate_posts(
             return stop_reason
         assert body is not None
         raw_posts, next_cursor, has_next_page = parse.walk_posts(body, operation_key)
+        if has_next_page and next_cursor is not None and next_cursor in seen_cursors:
+            raise errors.EnvelopeParseError(
+                f"response envelope drift for {operation_key!r}: "
+                "pagination cursor was already scheduled"
+            )
         stop_reason = _consume_posts(
             raw_posts,
             state,
+            profile_connection=profile_connection,
             limit=limit,
             since=since,
             until=until,
@@ -268,7 +278,7 @@ def _paginate_posts(
         if stop_reason is not None:
             return stop_reason
 
-        if not has_next_page or next_cursor is None or next_cursor in seen_cursors:
+        if not has_next_page or next_cursor is None:
             return eof_reason
         seen_cursors.add(next_cursor)
         cursor = next_cursor
@@ -392,6 +402,7 @@ def fetch_profile(
             features=features,
         ),
         eof_reason="no_next_page",
+        profile_connection=True,
         limit=limit,
         since=since,
         until=until,
@@ -414,6 +425,7 @@ def fetch_profile(
             features=features,
         ),
         eof_reason="no_next_page",
+        profile_connection=True,
         limit=limit,
         since=since,
         until=until,
@@ -468,6 +480,7 @@ def fetch_home(
         page_operation=gql.FEED_OPERATION,
         page_variables=lambda cursor: gql.feed_variables(cursor=cursor, features=features),
         eof_reason="feed_exhausted",
+        profile_connection=False,
         limit=limit,
         since=since,
         until=until,
@@ -529,6 +542,7 @@ def fetch_post(
         stop_reason = _consume_posts(
             raw_posts,
             state,
+            profile_connection=False,
             limit=limit,
             since=None,
             until=None,
@@ -571,6 +585,7 @@ def fetch_post(
             features=features,
         ),
         eof_reason="no_next_page",
+        profile_connection=False,
         limit=limit,
         since=None,
         until=None,
@@ -605,6 +620,11 @@ def _paginate_users(
             return users, stop_reason
         assert body is not None
         raw_users, next_cursor, has_next_page = parse.walk_users(body, operation_key)
+        if has_next_page and next_cursor is not None and next_cursor in seen_cursors:
+            raise errors.EnvelopeParseError(
+                f"response envelope drift for {operation_key!r}: "
+                "pagination cursor was already scheduled"
+            )
 
         added = 0
         for raw_user in raw_users:
@@ -622,7 +642,7 @@ def _paginate_users(
             if limit is not None and len(users) >= limit:
                 return users, "limit_reached"
 
-        if not has_next_page or next_cursor is None or next_cursor in seen_cursors:
+        if not has_next_page or next_cursor is None:
             return users, "no_next_page"
         empty_pages = 0 if added else empty_pages + 1
         if empty_page_guard and empty_pages >= _EMPTY_USER_PAGE_LIMIT:
@@ -699,6 +719,7 @@ def search(
             features=features,
         ),
         eof_reason="no_next_page",
+        profile_connection=False,
         limit=limit,
         since=since,
         until=until,
