@@ -1,0 +1,70 @@
+{
+  "data": {
+    "searchResults": {
+      "edges": [
+        {
+          "cursor": "synthetic-post-edge-1",
+          "node": {
+            "thread": {
+              "thread_items": [
+                {
+                  "post": {
+                    "pk": "201",
+                    "code": "synthetic-post-1",
+                    "taken_at": 1,
+                    "caption": {
+                      "text": "A synthetic post for offline search testing."
+                    },
+                    "user": {
+                      "pk": "101",
+                      "username": "synthetic_author",
+                      "full_name": "Synthetic Author",
+                      "is_verified": false,
+                      "follower_count": 3,
+                      "following_count": 2,
+                      "media_count": 1,
+                      "biography": "Hand-authored fixture account.",
+                      "profile_pic_url": "https://example.invalid/profiles/101.png"
+                    },
+                    "like_count": 2,
+                    "media_type": 1,
+                    "original_width": 640,
+                    "original_height": 480,
+                    "image_versions2": {
+                      "candidates": [
+                        {
+                          "url": "https://example.invalid/media/201.png",
+                          "width": 640,
+                          "height": 480
+                        }
+                      ]
+                    },
+                    "accessibility_caption": "Synthetic blue rectangle.",
+                    "text_post_app_info": {
+                      "direct_reply_count": 0,
+                      "repost_count": 0,
+                      "quote_count": 0,
+                      "is_reply": false,
+                      "pinned_post_info": {
+                        "is_pinned_to_profile": false
+                      },
+                      "share_info": {
+                        "quoted_post": null,
+                        "reposted_post": null
+                      },
+                      "link_preview_attachment": null
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "page_info": {
+        "end_cursor": "synthetic-post-page-2",
+        "has_next_page": true
+      }
+    }
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "data": {
+    "media": {
+      "pk": "4001",
+      "code": "root1",
+      "taken_at": 1767398400,
+      "caption": {
+        "text": "A standalone synthetic root post."
+      },
+      "user": {
+        "pk": "101",
+        "username": "synthetic_alice",
+        "full_name": "Synthetic Alice",
+        "is_verified": false
+      },
+      "like_count": 8,
+      "text_post_app_info": {
+        "is_reply": false,
+        "direct_reply_count": 1,
+        "repost_count": 2,
+        "quote_count": 3,
+        "pinned_post_info": {
+          "is_pinned_to_profile": false
+        }
+      }
+    }
+  }
+}

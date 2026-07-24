@@ -1,0 +1,70 @@
+{
+  "data": {
+    "data": {
+      "edges": [
+        {
+          "node": {
+            "thread_items": [
+              {
+                "post": {
+                  "pk": "4001",
+                  "code": "root1",
+                  "taken_at": 1767398400,
+                  "caption": {
+                    "text": "A standalone synthetic root post."
+                  },
+                  "user": {
+                    "pk": "101",
+                    "username": "synthetic_alice",
+                    "full_name": "Synthetic Alice",
+                    "is_verified": false
+                  },
+                  "like_count": 8,
+                  "text_post_app_info": {
+                    "is_reply": false,
+                    "direct_reply_count": 1,
+                    "repost_count": 2,
+                    "quote_count": 3
+                  }
+                }
+              },
+              {
+                "post": {
+                  "pk": "4002",
+                  "code": "reply2",
+                  "taken_at": 1767402000,
+                  "caption": {
+                    "text": "A synthetic direct reply to the root post."
+                  },
+                  "user": {
+                    "pk": "102",
+                    "username": "synthetic_bob",
+                    "full_name": "Synthetic Bob",
+                    "is_verified": false
+                  },
+                  "like_count": 2,
+                  "text_post_app_info": {
+                    "is_reply": true,
+                    "reply_to_id": "4001",
+                    "root_post_id": "4001",
+                    "reply_to_author": {
+                      "pk": "101",
+                      "username": "synthetic_alice"
+                    },
+                    "direct_reply_count": 0,
+                    "repost_count": 0,
+                    "quote_count": 0
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "page_info": {
+        "end_cursor": null,
+        "has_next_page": false
+      }
+    }
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "data": {
+    "user": {
+      "pk": "101",
+      "username": "synthetic_owner",
+      "full_name": "Synthetic Owner",
+      "is_verified": false,
+      "follower_count": 2,
+      "following_count": 1,
+      "media_count": 1,
+      "biography": "Owner of the synthetic connection.",
+      "profile_pic_url": "https://example.invalid/profiles/101.png",
+      "followers": {
+        "edges": [
+          {
+            "cursor": "synthetic-follower-edge-1",
+            "node": {
+              "pk": "401",
+              "username": "fixture_follower_one",
+              "full_name": "Synthetic Follower One",
+              "is_verified": false,
+              "follower_count": 1,
+              "following_count": 2,
+              "media_count": 0,
+              "biography": "First synthetic follower.",
+              "profile_pic_url": "https://example.invalid/profiles/401.png"
+            }
+          },
+          {
+            "cursor": "synthetic-follower-edge-2",
+            "node": {
+              "pk": "402",
+              "username": "fixture_follower_two",
+              "full_name": "Synthetic Follower Two",
+              "is_verified": false,
+              "follower_count": 0,
+              "following_count": 1,
+              "media_count": 1,
+              "biography": "Second synthetic follower.",
+              "profile_pic_url": "https://example.invalid/profiles/402.png"
+            }
+          }
+        ],
+        "page_info": {
+          "end_cursor": "synthetic-followers-page-2",
+          "has_next_page": true
+        }
+      }
+    }
+  }
+}

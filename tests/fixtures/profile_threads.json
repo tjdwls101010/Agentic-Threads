@@ -1,0 +1,110 @@
+{
+  "data": {
+    "mediaData": {
+      "edges": [
+        {
+          "node": {
+            "thread_items": [
+              {
+                "post": {
+                  "pk": "2001",
+                  "code": "thread1",
+                  "taken_at": 1767312000,
+                  "caption": {
+                    "text": "A pinned synthetic carousel that reposts a synthetic post."
+                  },
+                  "user": {
+                    "pk": "101",
+                    "username": "synthetic_alice",
+                    "full_name": "Synthetic Alice",
+                    "is_verified": false
+                  },
+                  "like_count": 5,
+                  "media_type": 8,
+                  "carousel_media": [
+                    {
+                      "pk": "2101",
+                      "media_type": 1,
+                      "image_versions2": {
+                        "candidates": [
+                          {
+                            "url": "https://example.invalid/media/carousel-photo.jpg",
+                            "width": 800,
+                            "height": 600
+                          }
+                        ]
+                      },
+                      "accessibility_caption": "First synthetic carousel image."
+                    },
+                    {
+                      "pk": "2102",
+                      "media_type": 2,
+                      "image_versions2": {
+                        "candidates": [
+                          {
+                            "url": "https://example.invalid/media/carousel-video-cover.jpg",
+                            "width": 640,
+                            "height": 640
+                          }
+                        ]
+                      },
+                      "video_versions": [
+                        {
+                          "url": "https://example.invalid/media/carousel-video-low.mp4",
+                          "width": 320,
+                          "height": 320
+                        },
+                        {
+                          "url": "https://example.invalid/media/carousel-video-high.mp4",
+                          "width": 1080,
+                          "height": 1080
+                        }
+                      ],
+                      "accessibility_caption": "Second synthetic carousel item is a video."
+                    }
+                  ],
+                  "text_post_app_info": {
+                    "is_reply": false,
+                    "direct_reply_count": 1,
+                    "repost_count": 2,
+                    "quote_count": 0,
+                    "pinned_post_info": {
+                      "is_pinned_to_profile": true
+                    },
+                    "share_info": {
+                      "reposted_post": {
+                        "pk": "2002",
+                        "code": "repost1",
+                        "taken_at": 1767308400,
+                        "caption": {
+                          "text": "Original synthetic post selected for reposting."
+                        },
+                        "user": {
+                          "pk": "103",
+                          "username": "synthetic_carol",
+                          "full_name": "Synthetic Carol",
+                          "is_verified": false
+                        },
+                        "like_count": 2,
+                        "text_post_app_info": {
+                          "is_reply": false,
+                          "direct_reply_count": 0,
+                          "repost_count": 1,
+                          "quote_count": 0
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "page_info": {
+        "end_cursor": null,
+        "has_next_page": false
+      }
+    }
+  }
+}
